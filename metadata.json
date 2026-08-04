@@ -1,0 +1,6 @@
+{
+  "name": "AI Success Hub",
+  "description": "All-in-one AI PDF & Productivity suite for PDF merging, splitting, editing, AI content creation, and document utilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
