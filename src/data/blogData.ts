@@ -23,9 +23,9 @@ AI models process scanned documents with unprecedented precision, converting non
 With hybrid web architecture, sensitive file operations can be performed directly inside your browser sandbox, keeping your documents confidential.
     `,
     author: {
-      name: 'Elena Rostova',
+      name: 'Dr. Mohamed Hassan',
       role: 'Head of Product AI',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
     },
     category: 'Productivity AI',
     publishedAt: 'Aug 2, 2026',
@@ -52,9 +52,9 @@ Keep file sizes below university portal upload limits (e.g. < 10MB) by using sma
 Use page extraction tools to isolate specific appendix tables and figures for bibliography reference.
     `,
     author: {
-      name: 'David Chen',
+      name: 'Amina Farah',
       role: 'Senior Tech Editor',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
     },
     category: 'Guides & Tutorials',
     publishedAt: 'Jul 28, 2026',

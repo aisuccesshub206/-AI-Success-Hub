@@ -81,7 +81,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="sarah.j@example.com"
+                    placeholder="your.email@domain.com"
                     className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SupportTicket, FAQItem } from '../../types';
+import { INITIAL_SUPPORT_TICKETS, INITIAL_FAQS } from '../../data/v2Data';
 import {
   HelpCircle,
   MessageSquare,
@@ -14,20 +15,23 @@ import {
 } from 'lucide-react';
 
 interface SupportCenterPageProps {
-  tickets: SupportTicket[];
-  faqs: FAQItem[];
-  onCreateTicket: (subject: string, category: string, initialMessage: string) => void;
-  onAddMessageToTicket: (ticketId: string, text: string) => void;
+  tickets?: SupportTicket[];
+  faqs?: FAQItem[];
+  onCreateTicket?: (subject: string, category: string, initialMessage: string) => void;
+  onAddMessageToTicket?: (ticketId: string, text: string) => void;
 }
 
 export const SupportCenterPage: React.FC<SupportCenterPageProps> = ({
-  tickets,
-  faqs,
+  tickets = INITIAL_SUPPORT_TICKETS,
+  faqs = INITIAL_FAQS,
   onCreateTicket,
   onAddMessageToTicket,
 }) => {
+  const safeTickets = tickets && tickets.length > 0 ? tickets : INITIAL_SUPPORT_TICKETS;
+  const safeFaqs = faqs || INITIAL_FAQS;
+
   const [activeTab, setActiveTab] = useState<'ai_bot' | 'tickets' | 'faqs'>('ai_bot');
-  const [selectedTicketId, setSelectedTicketId] = useState<string>(tickets[0]?.id || '');
+  const [selectedTicketId, setSelectedTicketId] = useState<string>(safeTickets[0]?.id || '');
   const [replyInput, setReplyInput] = useState('');
   const [faqSearch, setFaqSearch] = useState('');
 
@@ -47,7 +51,7 @@ export const SupportCenterPage: React.FC<SupportCenterPageProps> = ({
   const [botInput, setBotInput] = useState('');
   const [isBotThinking, setIsBotThinking] = useState(false);
 
-  const selectedTicket = tickets.find((t) => t.id === selectedTicketId) || tickets[0];
+  const selectedTicket = safeTickets.find((t) => t.id === selectedTicketId) || safeTickets[0];
 
   const handleBotSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,21 +82,25 @@ export const SupportCenterPage: React.FC<SupportCenterPageProps> = ({
   const handleReplySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyInput.trim() || !selectedTicket) return;
-    onAddMessageToTicket(selectedTicket.id, replyInput);
+    if (onAddMessageToTicket) {
+      onAddMessageToTicket(selectedTicket.id, replyInput);
+    }
     setReplyInput('');
   };
 
   const handleCreateTicketSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subjectInput.trim() || !msgInput.trim()) return;
-    onCreateTicket(subjectInput, catInput, msgInput);
+    if (onCreateTicket) {
+      onCreateTicket(subjectInput, catInput, msgInput);
+    }
     setSubjectInput('');
     setMsgInput('');
     setShowTicketModal(false);
     setActiveTab('tickets');
   };
 
-  const filteredFaqs = faqs.filter(
+  const filteredFaqs = safeFaqs.filter(
     (f) =>
       f.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
       f.answer.toLowerCase().includes(faqSearch.toLowerCase())

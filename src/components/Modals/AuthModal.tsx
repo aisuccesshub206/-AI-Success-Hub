@@ -15,10 +15,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLoginSuccess,
   onOpenForgotPassword,
 }) => {
-  const [email, setEmail] = useState('sarah.j@example.com');
-  const [name, setName] = useState('Sarah Jenkins');
-  const [phone, setPhone] = useState('+252 61 588 9201');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [agreeTerms, setAgreeTerms] = useState(true);
@@ -44,19 +44,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const emailTrimmed = email.trim().toLowerCase();
+    const derivedName = name.trim() || (emailTrimmed.includes('@') ? emailTrimmed.split('@')[0] : 'Member User');
+
     const loggedInUser: UserProfile = {
       id: `usr_${Date.now()}`,
-      name: name || 'Sarah Jenkins',
-      email: email || 'sarah.j@example.com',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-      plan: 'Pro Monthly',
-      storageUsedMB: 18.4,
+      name: derivedName,
+      email: emailTrimmed || 'user@aisuccesshub.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      plan: 'Free',
+      storageUsedMB: 0,
       storageLimitMB: 500,
-      filesProcessedCount: 24,
-      favorites: ['merge-pdf', 'ai-summarizer', 'ai-chat'],
-      role: email.includes('admin') ? 'admin' : 'user',
+      filesProcessedCount: 0,
+      favorites: ['merge-pdf', 'ai-summarizer'],
+      role: emailTrimmed === 'admin@aisuccesshub.com' ? 'admin' : 'user',
       accountStatus: 'active',
-      joinedDate: '2026-03-15',
+      joinedDate: new Date().toISOString().split('T')[0],
+      usage: {
+        aiRequestsToday: 0,
+        aiRequestsLimitDaily: 10,
+        aiRequestsThisMonth: 0,
+        aiRequestsLimitMonthly: 300,
+        pdfOpsToday: 0,
+        pdfOpsLimitDaily: 5,
+        storageUsedMB: 0,
+        storageLimitMB: 500,
+        maxFileSizeMB: 10,
+        apiRequestsThisMonth: 0,
+        apiRequestsLimitMonthly: 0,
+      },
     };
 
     onLoginSuccess(loggedInUser);
@@ -251,55 +267,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </div>
 
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
-            <button
-              type="button"
-              onClick={() => {
-                onLoginSuccess({
-                  id: 'usr_normal_1',
-                  name: 'Sarah Jenkins',
-                  email: 'sarah.j@example.com',
-                  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-                  plan: 'Free',
-                  storageUsedMB: 12.4,
-                  storageLimitMB: 100,
-                  filesProcessedCount: 18,
-                  favorites: ['merge-pdf', 'ai-summarizer'],
-                  role: 'user',
-                  accountStatus: 'active',
-                  joinedDate: '2026-03-15',
-                });
-                onClose();
-              }}
-              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors text-center"
-            >
-              👤 Sign In as Standard User (sarah.j@example.com)
-            </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                onLoginSuccess({
-                  id: 'usr-admin-1',
-                  name: 'Ridwaan Mohamed (Admin)',
-                  email: 'admin@aisuccesshub.com',
-                  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-                  plan: 'Lifetime',
-                  storageUsedMB: 1240,
-                  storageLimitMB: 100000,
-                  filesProcessedCount: 342,
-                  favorites: ['merge-pdf', 'ai-copilot'],
-                  role: 'admin',
-                  accountStatus: 'active',
-                  joinedDate: '2026-01-10',
-                });
-                onClose();
-              }}
-              className="w-full py-2 bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-800/60 text-xs font-bold rounded-xl transition-colors text-center"
-            >
-              🛡️ Sign In as Private Admin (admin@aisuccesshub.com)
-            </button>
-          </div>
         </div>
 
       </div>

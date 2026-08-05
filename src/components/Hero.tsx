@@ -196,7 +196,7 @@ export const Hero: React.FC<HeroProps> = ({ onSelectTool, tools }) => {
             </span>
             <span className="flex items-center gap-1.5">
               <Zap className="w-4 h-4 text-amber-400" />
-              No Registration Needed for Basic Tools
+              Secure Authentication Required
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-indigo-400" />

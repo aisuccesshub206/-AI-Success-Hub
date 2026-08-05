@@ -13,18 +13,27 @@ import {
   BookOpen,
 } from 'lucide-react';
 
+import { UserProfile } from '../../types';
+import { aiService } from '../../services/aiService';
+
 interface AiTextStudioProps {
   toolId: string;
   initialText?: string;
+  user?: UserProfile;
   onBack: () => void;
   onLogFileProcess: (fileName: string, originalSize: number, processedSize: number, toolUsed: string) => void;
+  onIncrementAiUsage?: () => void;
+  onTriggerUsageLimit?: (reason: 'ai_daily' | 'ai_monthly') => void;
 }
 
 export const AiTextStudio: React.FC<AiTextStudioProps> = ({
   toolId,
   initialText = '',
+  user,
   onBack,
   onLogFileProcess,
+  onIncrementAiUsage,
+  onTriggerUsageLimit,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [contextText, setContextText] = useState(initialText);
@@ -66,29 +75,42 @@ export const AiTextStudio: React.FC<AiTextStudioProps> = ({
 
   const handleGenerate = async () => {
     if (!prompt && !contextText) return;
+
+    // Check client-side limit
+    if (user && user.usage && user.usage.aiRequestsToday >= user.usage.aiRequestsLimitDaily) {
+      if (onTriggerUsageLimit) onTriggerUsageLimit('ai_daily');
+      setResult(`⚠️ Daily AI generation limit reached (${user.usage.aiRequestsToday}/${user.usage.aiRequestsLimitDaily}) for your ${user.plan} plan. Please upgrade to Pro or Enterprise for higher limits.`);
+      return;
+    }
+
     setGenerating(true);
     setResult('');
 
     try {
-      const response = await fetch('/api/ai/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toolType: toolId.replace('ai-', ''),
-          prompt,
-          contextText,
-          tone,
-          targetLanguage,
-          length,
-        }),
+      const response = await aiService.generateText({
+        user,
+        toolType: toolId.replace('ai-', ''),
+        prompt,
+        contextText,
+        tone,
+        targetLanguage,
+        length,
       });
 
-      const data = await response.json();
-      if (data.result) {
-        setResult(data.result);
-        onLogFileProcess(`${toolId}_output.txt`, prompt.length, data.result.length, getToolTitle());
+      if (!response.success) {
+        if (response.reason === 'ai_daily' || response.reason === 'ai_monthly') {
+          if (onTriggerUsageLimit) onTriggerUsageLimit(response.reason);
+        }
+        setResult(`⚠️ ${response.error || 'Failed to process AI request.'}`);
+        return;
+      }
+
+      if (response.data?.result) {
+        setResult(response.data.result);
+        onLogFileProcess(`${toolId}_output.txt`, prompt.length, response.data.result.length, getToolTitle());
+        if (onIncrementAiUsage) onIncrementAiUsage();
       } else {
-        setResult('Error generating content. Please check server logs.');
+        setResult('Error generating content. Please try again.');
       }
     } catch (err: any) {
       console.error('AI Text Studio Error:', err);

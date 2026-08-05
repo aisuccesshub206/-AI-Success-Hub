@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KnowledgeFile } from '../../types';
+import { INITIAL_KNOWLEDGE_FILES } from '../../data/v2Data';
 import {
   FileText,
   Upload,
@@ -18,17 +19,18 @@ import {
 } from 'lucide-react';
 
 interface KnowledgeBasePageProps {
-  files: KnowledgeFile[];
-  onUploadFile: (file: KnowledgeFile) => void;
-  onDeleteFile: (id: string) => void;
+  files?: KnowledgeFile[];
+  onUploadFile?: (file: KnowledgeFile) => void;
+  onDeleteFile?: (id: string) => void;
 }
 
 export const KnowledgeBasePage: React.FC<KnowledgeBasePageProps> = ({
-  files,
+  files = INITIAL_KNOWLEDGE_FILES,
   onUploadFile,
   onDeleteFile,
 }) => {
-  const [selectedFileId, setSelectedFileId] = useState<string>(files[0]?.id || '');
+  const safeFiles = files && files.length > 0 ? files : INITIAL_KNOWLEDGE_FILES;
+  const [selectedFileId, setSelectedFileId] = useState<string>(safeFiles[0]?.id || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [cloudModalOpen, setCloudModalOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -40,7 +42,7 @@ export const KnowledgeBasePage: React.FC<KnowledgeBasePageProps> = ({
   ]);
   const [isAiAnswering, setIsAiAnswering] = useState(false);
 
-  const selectedFile = files.find((f) => f.id === selectedFileId) || files[0];
+  const selectedFile = safeFiles.find((f) => f.id === selectedFileId) || safeFiles[0];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploaded = e.target.files?.[0];

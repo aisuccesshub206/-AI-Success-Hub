@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ApiKey, ApiEndpointDoc } from '../../types';
+import { INITIAL_API_KEYS, API_ENDPOINTS_DOCS } from '../../data/v2Data';
 import {
   Code2,
   Key,
@@ -17,19 +18,22 @@ import {
 } from 'lucide-react';
 
 interface ApiPlatformPageProps {
-  apiKeys: ApiKey[];
-  endpoints: ApiEndpointDoc[];
-  onCreateKey: (name: string) => void;
-  onRevokeKey: (id: string) => void;
+  apiKeys?: ApiKey[];
+  endpoints?: ApiEndpointDoc[];
+  onCreateKey?: (name: string) => void;
+  onRevokeKey?: (id: string) => void;
 }
 
 export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
-  apiKeys,
-  endpoints,
+  apiKeys = INITIAL_API_KEYS,
+  endpoints = API_ENDPOINTS_DOCS,
   onCreateKey,
   onRevokeKey,
 }) => {
-  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpointDoc>(endpoints[0]);
+  const safeEndpoints = endpoints && endpoints.length > 0 ? endpoints : API_ENDPOINTS_DOCS;
+  const safeKeys = apiKeys || INITIAL_API_KEYS;
+
+  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpointDoc>(safeEndpoints[0]);
   const [keyNameInput, setKeyNameInput] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
@@ -39,7 +43,9 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!keyNameInput.trim()) return;
-    onCreateKey(keyNameInput);
+    if (onCreateKey) {
+      onCreateKey(keyNameInput);
+    }
     setKeyNameInput('');
     setShowCreateModal(false);
   };
@@ -52,6 +58,13 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
       setIsTesting(false);
       setTestOutput(selectedEndpoint.sampleResponse);
     }, 700);
+  };
+
+  const maskKey = (key: string) => {
+    if (!key) return 'ash_live_************9e7f';
+    const prefix = key.startsWith('ash_') || key.startsWith('sk_') ? key.slice(0, 8) : 'ash_live_';
+    const suffix = key.slice(-4);
+    return `${prefix}************${suffix}`;
   };
 
   return (
@@ -114,7 +127,7 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
             <span>Active Keys</span>
             <Key className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-2xl font-extrabold text-white">{apiKeys.filter((k) => k.status === 'active').length} Keys</div>
+          <div className="text-2xl font-extrabold text-white">{safeKeys.filter((k) => k.status === 'active').length} Keys</div>
           <div className="text-[11px] text-slate-400">Scoped with SSL Auth</div>
         </div>
       </div>
@@ -127,11 +140,11 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
           <div className="p-6 bg-[#07070e]/80 backdrop-blur-xl border border-white/10 rounded-2xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Key className="w-4 h-4 text-indigo-400" />
-              API Secret Keys ({apiKeys.length})
+              API Secret Keys ({safeKeys.length})
             </h3>
 
             <div className="space-y-3">
-              {apiKeys.map((keyObj) => (
+              {safeKeys.map((keyObj) => (
                 <div
                   key={keyObj.id}
                   className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2"
@@ -151,7 +164,7 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
 
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <code className="text-xs text-indigo-300 font-mono bg-black/40 px-2 py-1 rounded border border-white/5 flex-1 truncate">
-                      {keyObj.key}
+                      {maskKey(keyObj.key)}
                     </code>
 
                     <button
@@ -168,7 +181,7 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
 
                     {keyObj.status === 'active' && (
                       <button
-                        onClick={() => onRevokeKey(keyObj.id)}
+                        onClick={() => onRevokeKey && onRevokeKey(keyObj.id)}
                         className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
                         title="Revoke Key"
                       >
@@ -198,7 +211,7 @@ export const ApiPlatformPage: React.FC<ApiPlatformPageProps> = ({
 
               {/* Endpoint Tabs */}
               <div className="flex flex-wrap gap-1">
-                {endpoints.map((ep) => (
+                {safeEndpoints.map((ep) => (
                   <button
                     key={ep.id}
                     onClick={() => {

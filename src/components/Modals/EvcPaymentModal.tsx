@@ -21,10 +21,12 @@ interface EvcPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile;
-  selectedPlanId: string; // 'monthly' | 'yearly' | 'lifetime'
+  selectedPlanId?: string; // 'monthly' | 'yearly' | 'lifetime'
+  initialPlanId?: string;
   config: EvcPaymentConfig;
   existingPayments: EvcPaymentRequest[];
-  onSubmitPayment: (payment: Omit<EvcPaymentRequest, 'id' | 'submittedAt' | 'status'>) => void;
+  onSubmitPayment?: (payment: Omit<EvcPaymentRequest, 'id' | 'submittedAt' | 'status'>) => void;
+  onSubmitPaymentRequest?: (payment: Omit<EvcPaymentRequest, 'id' | 'submittedAt' | 'status'>) => void;
 }
 
 export const EvcPaymentModal: React.FC<EvcPaymentModalProps> = ({
@@ -32,10 +34,15 @@ export const EvcPaymentModal: React.FC<EvcPaymentModalProps> = ({
   onClose,
   user,
   selectedPlanId,
+  initialPlanId,
   config,
   existingPayments,
   onSubmitPayment,
+  onSubmitPaymentRequest,
 }) => {
+  const activeSelectedPlanId = selectedPlanId || initialPlanId || 'monthly';
+  const submitPaymentHandler = onSubmitPaymentRequest || onSubmitPayment;
+
   const [step, setStep] = useState<'instructions' | 'form' | 'success'>('instructions');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('evc_plus');
   const [copiedCode, setCopiedCode] = useState(false);
@@ -45,13 +52,13 @@ export const EvcPaymentModal: React.FC<EvcPaymentModalProps> = ({
   const [fullName, setFullName] = useState(user.name || '');
   const [email, setEmail] = useState(user.email || '');
   const [phoneNumber, setPhoneNumber] = useState('+252 61 ');
-  const [planId, setPlanId] = useState(selectedPlanId || 'monthly');
+  const [planId, setPlanId] = useState(activeSelectedPlanId);
   const [transactionId, setTransactionId] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState(SAMPLE_RECEIPT_IMAGE);
   const [customAmount, setCustomAmount] = useState<number>(
-    selectedPlanId === 'lifetime'
+    activeSelectedPlanId === 'lifetime'
       ? config.lifetimePriceUSD
-      : selectedPlanId === 'yearly'
+      : activeSelectedPlanId === 'yearly'
       ? config.yearlyPriceUSD
       : config.monthlyPriceUSD
   );
@@ -166,19 +173,21 @@ export const EvcPaymentModal: React.FC<EvcPaymentModalProps> = ({
     setIsSubmitting(true);
 
     setTimeout(() => {
-      onSubmitPayment({
-        fullName,
-        email,
-        phoneNumber,
-        paymentMethod,
-        planId,
-        planName: currentPlanDetails.name,
-        amountPaidUSD: customAmount,
-        transactionId: cleanTxnId,
-        screenshotUrl,
-        durationMonths: currentPlanDetails.duration,
-        adminNotes: `Submitted via ${methodInfo.title} local mobile payment`,
-      });
+      if (submitPaymentHandler) {
+        submitPaymentHandler({
+          fullName,
+          email,
+          phoneNumber,
+          paymentMethod,
+          planId,
+          planName: currentPlanDetails.name,
+          amountPaidUSD: customAmount,
+          transactionId: cleanTxnId,
+          screenshotUrl,
+          durationMonths: currentPlanDetails.duration,
+          adminNotes: `Submitted via ${methodInfo.title} local mobile payment`,
+        });
+      }
 
       setSubmittedTxnId(cleanTxnId);
       setIsSubmitting(false);

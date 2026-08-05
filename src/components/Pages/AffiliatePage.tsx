@@ -185,7 +185,7 @@ export const AffiliatePage: React.FC<AffiliatePageProps> = ({
           <div className="space-y-3">
             {[
               { rank: '1', name: 'TechCrunch Affiliate', earned: '$14,280', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' },
-              { rank: '2', name: 'Sarah Jenkins (You)', earned: '$1,700', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200', isYou: true },
+              { rank: '2', name: 'Your Account (Active)', earned: '$1,700', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200', isYou: true },
               { rank: '3', name: 'DevTool Digest', earned: '$1,240', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200' },
               { rank: '4', name: 'SaaS Growth Hub', earned: '$980', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=200' },
             ].map((leader) => (

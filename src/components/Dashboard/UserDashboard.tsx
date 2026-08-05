@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   UserProfile,
   ProcessedFile,
@@ -14,6 +14,15 @@ import {
   Clock,
   Sparkles,
   Zap,
+  User,
+  Settings,
+  Lock,
+  Globe,
+  Sun,
+  Moon,
+  Trash2,
+  CheckCircle2,
+  Camera,
 } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -23,6 +32,10 @@ interface UserDashboardProps {
   onSelectTool: (toolId: string) => void;
   onOpenPricing: () => void;
   onOpenSubscriptionManagement?: () => void;
+  onUpdateProfile?: (updated: Partial<UserProfile>) => void;
+  onDeleteAccount?: () => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -32,22 +45,79 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onSelectTool,
   onOpenPricing,
   onOpenSubscriptionManagement,
+  onUpdateProfile,
+  onDeleteAccount,
+  darkMode = true,
+  onToggleDarkMode,
 }) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings'>('overview');
+  
+  // Profile Form States
+  const [editName, setEditName] = useState(user.name);
+  const [editEmail, setEditEmail] = useState(user.email);
+  const [avatarUrl, setAvatarUrl] = useState(user.avatar);
+  const [selectedLang, setSelectedLang] = useState('en');
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+
+  // Password Form States
+  const [currPassword, setCurrPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('');
+  const [passwordErrorMsg, setPasswordErrorMsg] = useState('');
+
+  // Delete Account Modal State
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const favoriteTools = tools.filter((t) => user.favorites.includes(t.id));
 
   // Defaults for usage
   const usage = user.usage || {
-    aiRequestsToday: 8,
+    aiRequestsToday: 0,
     aiRequestsLimitDaily: user.plan === 'Free' ? 10 : -1,
-    aiRequestsThisMonth: user.plan.includes('Pro') ? 180 : 8,
+    aiRequestsThisMonth: user.plan.includes('Pro') ? 180 : 0,
     aiRequestsLimitMonthly: user.plan.includes('Pro') ? 500 : user.plan === 'Enterprise' ? -1 : 300,
-    pdfOpsToday: 3,
+    pdfOpsToday: 0,
     pdfOpsLimitDaily: user.plan === 'Free' ? 5 : -1,
-    storageUsedMB: user.storageUsedMB || 120,
+    storageUsedMB: user.storageUsedMB || 0,
     storageLimitMB: user.storageLimitMB || 500,
     maxFileSizeMB: user.plan === 'Free' ? 10 : user.plan.includes('Pro') ? 500 : 5120,
     apiRequestsThisMonth: user.plan === 'Enterprise' ? 12400 : 0,
     apiRequestsLimitMonthly: user.plan === 'Enterprise' ? 50000 : 0,
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        name: editName,
+        email: editEmail,
+        avatar: avatarUrl,
+      });
+    }
+    setProfileSuccessMsg('Profile updated successfully!');
+    setTimeout(() => setProfileSuccessMsg(''), 3000);
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordErrorMsg('');
+    setPasswordSuccessMsg('');
+
+    if (newPassword.length < 6) {
+      setPasswordErrorMsg('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordErrorMsg('New passwords do not match.');
+      return;
+    }
+
+    setPasswordSuccessMsg('Password updated successfully!');
+    setCurrPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setTimeout(() => setPasswordSuccessMsg(''), 3000);
   };
 
   return (
@@ -94,6 +164,274 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'overview'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          <span>Dashboard Overview &amp; Usage</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'settings'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Profile &amp; Account Settings</span>
+        </button>
+      </div>
+
+      {activeTab === 'settings' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-200">
+          {/* Edit Profile Form */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <User className="w-5 h-5 text-indigo-500" />
+              <span>Personal Profile</span>
+            </h3>
+
+            {profileSuccessMsg && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{profileSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Profile Photo URL
+                </label>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar Preview"
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-indigo-500/30"
+                  />
+                  <input
+                    type="url"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all"
+                >
+                  Save Profile Changes
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Security & Preferences */}
+          <div className="space-y-6">
+            {/* Change Password Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <Lock className="w-5 h-5 text-indigo-500" />
+                <span>Security &amp; Change Password</span>
+              </h3>
+
+              {passwordSuccessMsg && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{passwordSuccessMsg}</span>
+                </div>
+              )}
+
+              {passwordErrorMsg && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                  {passwordErrorMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={currPassword}
+                    onChange={(e) => setCurrPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 transition-all"
+                  >
+                    Update Password
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Language & Theme Preferences */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <Globe className="w-5 h-5 text-indigo-500" />
+                <span>Preferences</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Display Language
+                  </label>
+                  <select
+                    value={selectedLang}
+                    onChange={(e) => setSelectedLang(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="en">English (US)</option>
+                    <option value="so">Soomaali (Somali)</option>
+                    <option value="ar">العربية (Arabic)</option>
+                    <option value="fr">Français (French)</option>
+                    <option value="es">Español (Spanish)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Appearance Mode
+                  </label>
+                  <button
+                    type="button"
+                    onClick={onToggleDarkMode}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-semibold flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      {darkMode ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                      <span>{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+                    </span>
+                    <span className="text-[10px] text-indigo-500 font-bold uppercase">Toggle</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="bg-rose-950/20 border border-rose-900/40 rounded-3xl p-6 space-y-3">
+              <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                <span>Danger Zone</span>
+              </h4>
+              <p className="text-xs text-slate-400">
+                Permanently remove your personal account, saved AI workflows, and Knowledge Base files.
+              </p>
+
+              {showDeleteConfirm ? (
+                <div className="p-4 bg-rose-950/60 border border-rose-800 rounded-2xl space-y-3 text-xs">
+                  <div className="font-bold text-rose-200">Are you absolutely sure? This cannot be undone.</div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onDeleteAccount) onDeleteAccount();
+                      }}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl"
+                    >
+                      Yes, Delete My Account
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl font-bold text-xs transition-all"
+                >
+                  Delete Personal Account
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
 
       {/* Account Limits & Usage Tracker Card Row */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -331,6 +669,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </div>
         )}
       </div>
+        </>
+      )}
 
     </div>
   );

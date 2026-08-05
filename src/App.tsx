@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { TOOLS_DATA } from './data/toolsData';
-import { INITIAL_NOTIFICATIONS } from './data/v2Data';
+import { INITIAL_NOTIFICATIONS, INITIAL_MARKETPLACE_ITEMS, INITIAL_WORKFLOWS, INITIAL_API_KEYS, API_ENDPOINTS_DOCS } from './data/v2Data';
 import { INITIAL_EVC_PAYMENTS, INITIAL_EVC_CONFIG, INITIAL_PAYMENT_AUDIT_LOGS } from './data/evcData';
 import { INITIAL_REGISTERED_USERS } from './data/usersData';
 import { PRICING_PLANS } from './data/pricingData';
-import { UserProfile, ProcessedFile, ToolCategory, AppNotification, EvcPaymentRequest, EvcPaymentConfig, PaymentAuditLog, PricingPlan } from './types';
+import { UserProfile, ProcessedFile, ToolCategory, AppNotification, EvcPaymentRequest, EvcPaymentConfig, PaymentAuditLog, PricingPlan, MarketplaceItem, Workflow, ApiKey } from './types';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
@@ -59,33 +59,70 @@ export default function App() {
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [initialFile, setInitialFile] = useState<File | null>(null);
 
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return localStorage.getItem('ais_user_logged_in') === 'true';
+  });
+
   // User Profile
-  const [user, setUser] = useState<UserProfile>({
-    id: 'usr_normal_1',
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@example.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
-    plan: 'Free',
-    storageUsedMB: 120,
-    storageLimitMB: 500,
-    filesProcessedCount: 18,
-    favorites: ['merge-pdf', 'ai-summarizer', 'ai-chat'],
-    role: 'user',
-    accountStatus: 'active',
-    joinedDate: '2026-03-15',
-    usage: {
-      aiRequestsToday: 8,
-      aiRequestsLimitDaily: 10,
-      aiRequestsThisMonth: 12,
-      aiRequestsLimitMonthly: 300,
-      pdfOpsToday: 3,
-      pdfOpsLimitDaily: 5,
-      storageUsedMB: 120,
-      storageLimitMB: 500,
-      maxFileSizeMB: 10,
-      apiRequestsThisMonth: 0,
-      apiRequestsLimitMonthly: 0,
-    },
+  const [user, setUser] = useState<UserProfile>(() => {
+    const savedLoggedIn = localStorage.getItem('ais_user_logged_in') === 'true';
+    if (savedLoggedIn) {
+      return {
+        id: 'usr_normal_1',
+        name: 'Abdirahman Hassan',
+        email: 'abdirahman@gmail.com',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+        plan: 'Pro Monthly',
+        storageUsedMB: 120,
+        storageLimitMB: 10000,
+        filesProcessedCount: 24,
+        favorites: ['merge-pdf', 'ai-summarizer', 'ai-chat'],
+        role: 'user',
+        accountStatus: 'active',
+        joinedDate: '2026-03-15',
+        usage: {
+          aiRequestsToday: 0,
+          aiRequestsLimitDaily: 50,
+          aiRequestsThisMonth: 12,
+          aiRequestsLimitMonthly: 500,
+          pdfOpsToday: 0,
+          pdfOpsLimitDaily: 20,
+          storageUsedMB: 120,
+          storageLimitMB: 10000,
+          maxFileSizeMB: 100,
+          apiRequestsThisMonth: 0,
+          apiRequestsLimitMonthly: 0,
+        },
+      };
+    }
+    return {
+      id: 'usr_guest',
+      name: 'Guest User',
+      email: '',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      plan: 'Free',
+      storageUsedMB: 0,
+      storageLimitMB: 100,
+      filesProcessedCount: 0,
+      favorites: [],
+      role: 'user',
+      accountStatus: 'active',
+      joinedDate: new Date().toISOString().split('T')[0],
+      usage: {
+        aiRequestsToday: 0,
+        aiRequestsLimitDaily: 10,
+        aiRequestsThisMonth: 0,
+        aiRequestsLimitMonthly: 100,
+        pdfOpsToday: 0,
+        pdfOpsLimitDaily: 5,
+        storageUsedMB: 0,
+        storageLimitMB: 100,
+        maxFileSizeMB: 10,
+        apiRequestsThisMonth: 0,
+        apiRequestsLimitMonthly: 0,
+      },
+    };
   });
 
   // Registered Users Directory State
@@ -93,6 +130,15 @@ export default function App() {
 
   // Dynamic Pricing Plans Controlled by Admin State
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>(PRICING_PLANS);
+
+  // Marketplace items state
+  const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(INITIAL_MARKETPLACE_ITEMS);
+
+  // Workflows state
+  const [workflows, setWorkflows] = useState<Workflow[]>(INITIAL_WORKFLOWS);
+
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>(INITIAL_API_KEYS);
 
   // Recent files activity
   const [recentFiles, setRecentFiles] = useState<ProcessedFile[]>([
@@ -512,6 +558,25 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Usage & Subscription Handlers
+  const handleIncrementAiUsage = () => {
+    setUser((prev) => ({
+      ...prev,
+      usage: {
+        ...prev.usage,
+        aiRequestsToday: prev.usage.aiRequestsToday + 1,
+        aiRequestsThisMonth: prev.usage.aiRequestsThisMonth + 1,
+      },
+    }));
+  };
+
+  const handleTriggerUsageLimitModal = (
+    reason: 'ai_daily' | 'ai_monthly' | 'pdf_daily' | 'file_size' | 'storage_full' | 'api_limit'
+  ) => {
+    setUsageLimitReason(reason);
+    setUsageLimitModalOpen(true);
+  };
+
   const renderToolExecutor = () => {
     if (!activeToolId) return null;
     const tool = TOOLS_DATA.find((t) => t.id === activeToolId);
@@ -520,10 +585,13 @@ export default function App() {
     if (activeToolId === 'ai-chat') {
       return (
         <AiChatStudio
+          user={user}
           onBack={() => {
             setActiveToolId(null);
             setCurrentPage('home');
           }}
+          onIncrementAiUsage={handleIncrementAiUsage}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
         />
       );
     }
@@ -531,11 +599,14 @@ export default function App() {
     if (activeToolId === 'ai-image-generator') {
       return (
         <AiImageStudio
+          user={user}
           onBack={() => {
             setActiveToolId(null);
             setCurrentPage('home');
           }}
           onLogFileProcess={handleLogFileProcess}
+          onIncrementAiUsage={handleIncrementAiUsage}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
         />
       );
     }
@@ -558,11 +629,14 @@ export default function App() {
       return (
         <AiTextStudio
           toolId={activeToolId}
+          user={user}
           onBack={() => {
             setActiveToolId(null);
             setCurrentPage('home');
           }}
           onLogFileProcess={handleLogFileProcess}
+          onIncrementAiUsage={handleIncrementAiUsage}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
         />
       );
     }
@@ -649,6 +723,25 @@ export default function App() {
               evcAuditLogs={evcAuditLogs}
               users={usersList}
               plans={pricingPlans}
+              apiKeys={apiKeys}
+              onCreateKey={(keyName) => {
+                const newKeyObj: ApiKey = {
+                  id: `key-${Date.now()}`,
+                  name: keyName,
+                  key: `sk_live_${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`,
+                  createdAt: 'Just now',
+                  lastUsed: 'Never',
+                  status: 'active',
+                  requestsCount: 0,
+                  rateLimitPerMin: 1200,
+                };
+                setApiKeys((prev) => [newKeyObj, ...prev]);
+              }}
+              onRevokeKey={(keyId) => {
+                setApiKeys((prev) =>
+                  prev.map((k) => (k.id === keyId ? { ...k, status: 'revoked' } : k))
+                );
+              }}
               onApproveEvcPayment={handleApproveEvcPayment}
               onRejectEvcPayment={handleRejectEvcPayment}
               onUpdateEvcConfig={handleUpdateEvcConfig}
@@ -677,13 +770,65 @@ export default function App() {
           ]);
         }} />;
       case 'automation':
-        return <AutomationBuilder />;
+        return (
+          <AutomationBuilder
+            workflows={workflows}
+            onSaveWorkflow={(savedWf) => {
+              setWorkflows((prev) => {
+                const idx = prev.findIndex((w) => w.id === savedWf.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = savedWf;
+                  return updated;
+                }
+                return [savedWf, ...prev];
+              });
+            }}
+            onRunWorkflow={(wfId) => {
+              setWorkflows((prev) =>
+                prev.map((w) =>
+                  w.id === wfId
+                    ? { ...w, runsCount: (w.runsCount || 0) + 1, lastRun: 'Just now' }
+                    : w
+                )
+              );
+            }}
+          />
+        );
       case 'knowledge-base':
         return <KnowledgeBasePage />;
       case 'api-platform':
-        return <ApiPlatformPage />;
+        return (
+          <ApiPlatformPage
+            apiKeys={apiKeys}
+            endpoints={API_ENDPOINTS_DOCS}
+            onCreateKey={(keyName) => {
+              const newKeyObj: ApiKey = {
+                id: `key-${Date.now()}`,
+                name: keyName,
+                key: `sk_live_${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`,
+                createdAt: 'Just now',
+                lastUsed: 'Never',
+                status: 'active',
+                requestsCount: 0,
+                rateLimitPerMin: 1200,
+              };
+              setApiKeys((prev) => [newKeyObj, ...prev]);
+            }}
+            onRevokeKey={(keyId) => {
+              setApiKeys((prev) =>
+                prev.map((k) => (k.id === keyId ? { ...k, status: 'revoked' } : k))
+              );
+            }}
+          />
+        );
       case 'marketplace':
-        return <MarketplacePage />;
+        return (
+          <MarketplacePage
+            items={marketplaceItems}
+            onAddItem={(newItem) => setMarketplaceItems((prev) => [newItem, ...prev])}
+          />
+        );
       case 'affiliate':
         return <AffiliatePage />;
       case 'team-workspace':
@@ -799,9 +944,11 @@ export default function App() {
         onClose={() => setEvcModalOpen(false)}
         user={user}
         initialPlanId={selectedEvcPlanId}
+        selectedPlanId={selectedEvcPlanId}
         config={evcConfig}
         existingPayments={evcPayments}
         onSubmitPaymentRequest={handleSubmitEvcPaymentRequest}
+        onSubmitPayment={handleSubmitEvcPaymentRequest}
       />
 
       <CommandPalette

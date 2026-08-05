@@ -17,10 +17,10 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn("GEMINI_API_KEY is not set in environment.");
+    throw new Error("GEMINI_API_KEY_MISSING: Gemini API key is not configured on the server environment.");
   }
   return new GoogleGenAI({
-    apiKey: apiKey || "",
+    apiKey: apiKey,
     httpOptions: {
       headers: {
         "User-Agent": "aistudio-build",
@@ -29,15 +29,66 @@ function getGeminiClient() {
   });
 }
 
+// Plan usage limit validation helper
+function validatePlanUsage(body: any) {
+  const plan = (body.userPlan || 'Free').toString().toLowerCase();
+  const usage = body.userUsage || {};
+
+  const dailyUsed = typeof usage.aiRequestsToday === 'number' ? usage.aiRequestsToday : 0;
+  const monthlyUsed = typeof usage.aiRequestsThisMonth === 'number' ? usage.aiRequestsThisMonth : 0;
+
+  // Plan limits: Free = 10/day, Pro = 500/day, Enterprise = Unlimited (10000)
+  const maxDaily = typeof usage.aiRequestsLimitDaily === 'number' && usage.aiRequestsLimitDaily > 0
+    ? usage.aiRequestsLimitDaily
+    : (plan.includes('pro') ? 500 : plan.includes('enterprise') || plan.includes('vip') ? 10000 : 10);
+
+  const maxMonthly = typeof usage.aiRequestsLimitMonthly === 'number' && usage.aiRequestsLimitMonthly > 0
+    ? usage.aiRequestsLimitMonthly
+    : (plan.includes('pro') ? 10000 : plan.includes('enterprise') || plan.includes('vip') ? 100000 : 300);
+
+  if (dailyUsed >= maxDaily) {
+    return {
+      allowed: false,
+      reason: 'ai_daily',
+      message: `Daily AI limit reached (${dailyUsed}/${maxDaily}) for your ${body.userPlan || 'Free'} plan. Upgrade to Pro or Enterprise for higher limits.`
+    };
+  }
+
+  if (monthlyUsed >= maxMonthly) {
+    return {
+      allowed: false,
+      reason: 'ai_monthly',
+      message: `Monthly AI limit reached (${monthlyUsed}/${maxMonthly}) for your ${body.userPlan || 'Free'} plan. Upgrade to Pro or Enterprise for higher limits.`
+    };
+  }
+
+  return { allowed: true };
+}
+
 // ==================== API ROUTES ==================== //
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", app: "AI Success Hub", timestamp: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    app: "AI Success Hub",
+    geminiConfigured: !!process.env.GEMINI_API_KEY,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // 1. AI Chat Endpoint
 app.post("/api/ai/chat", async (req, res) => {
   try {
+    // Check subscription plan usage limits first
+    const usageCheck = validatePlanUsage(req.body);
+    if (!usageCheck.allowed) {
+      return res.status(429).json({
+        error: "USAGE_LIMIT_EXCEEDED",
+        reason: usageCheck.reason,
+        message: usageCheck.message
+      });
+    }
+
     const { messages, systemInstruction } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: "Messages array is required." });
@@ -46,7 +97,7 @@ app.post("/api/ai/chat", async (req, res) => {
     const ai = getGeminiClient();
     const lastUserMessage = messages[messages.length - 1]?.content || "Hello";
 
-    // Format chat history
+    // Call Gemini 3.6 Flash
     const response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: lastUserMessage,
@@ -55,9 +106,12 @@ app.post("/api/ai/chat", async (req, res) => {
       },
     });
 
-    res.json({ result: response.text });
+    res.json({ result: response.text, usageUpdated: true });
   } catch (error: any) {
     console.error("Error in /api/ai/chat:", error);
+    if (error.message && error.message.includes("GEMINI_API_KEY_MISSING")) {
+      return res.status(500).json({ error: "Gemini API key is missing on the server. Please check your environment variables." });
+    }
     res.status(500).json({ error: error.message || "Failed to generate AI response." });
   }
 });
@@ -65,6 +119,16 @@ app.post("/api/ai/chat", async (req, res) => {
 // 2. AI Text Tools Endpoint (Summarize, Writer, Resume, Email, Blog, Script, Translator, etc.)
 app.post("/api/ai/generate-text", async (req, res) => {
   try {
+    // Check subscription plan usage limits first
+    const usageCheck = validatePlanUsage(req.body);
+    if (!usageCheck.allowed) {
+      return res.status(429).json({
+        error: "USAGE_LIMIT_EXCEEDED",
+        reason: usageCheck.reason,
+        message: usageCheck.message
+      });
+    }
+
     const { toolType, prompt, contextText, tone, targetLanguage, length } = req.body;
     
     if (!prompt && !contextText) {
@@ -114,9 +178,12 @@ ${prompt || ""}`;
       },
     });
 
-    res.json({ result: response.text });
+    res.json({ result: response.text, usageUpdated: true });
   } catch (error: any) {
     console.error("Error in /api/ai/generate-text:", error);
+    if (error.message && error.message.includes("GEMINI_API_KEY_MISSING")) {
+      return res.status(500).json({ error: "Gemini API key is missing on the server. Please check your environment variables." });
+    }
     res.status(500).json({ error: error.message || "Failed to execute AI text task." });
   }
 });
@@ -124,6 +191,16 @@ ${prompt || ""}`;
 // 3. AI Image Generator Endpoint
 app.post("/api/ai/generate-image", async (req, res) => {
   try {
+    // Check subscription plan usage limits first
+    const usageCheck = validatePlanUsage(req.body);
+    if (!usageCheck.allowed) {
+      return res.status(429).json({
+        error: "USAGE_LIMIT_EXCEEDED",
+        reason: usageCheck.reason,
+        message: usageCheck.message
+      });
+    }
+
     const { prompt, aspectRatio, style } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: "Image prompt is required." });
@@ -158,13 +235,15 @@ app.post("/api/ai/generate-image", async (req, res) => {
     }
 
     if (!imageUrl) {
-      // Fallback placeholder if image model generation isn't supported on current key
       return res.status(500).json({ error: "Image generation did not return image data. Check API key permissions." });
     }
 
-    res.json({ imageUrl, caption });
+    res.json({ imageUrl, caption, usageUpdated: true });
   } catch (error: any) {
     console.error("Error in /api/ai/generate-image:", error);
+    if (error.message && error.message.includes("GEMINI_API_KEY_MISSING")) {
+      return res.status(500).json({ error: "Gemini API key is missing on the server. Please check your environment variables." });
+    }
     res.status(500).json({ error: error.message || "Failed to generate AI image." });
   }
 });

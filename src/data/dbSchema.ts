@@ -76,8 +76,8 @@ export interface DbActivityLog {
 export const SEED_DB_USERS: DbUser[] = [
   {
     id: 'usr_normal_1',
-    full_name: 'Sarah Jenkins',
-    email: 'sarah.j@example.com',
+    full_name: 'Abdirahman Hassan',
+    email: 'abdirahman@gmail.com',
     phone_number: '+252 61 588 9201',
     password_hash: '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae', // SHA256 of 'password123'
     profile_image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',

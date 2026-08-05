@@ -13,9 +13,11 @@ import {
   Share2,
 } from 'lucide-react';
 
+import { INITIAL_MARKETPLACE_ITEMS } from '../../data/v2Data';
+
 interface MarketplacePageProps {
-  items: MarketplaceItem[];
-  onAddItem: (item: MarketplaceItem) => void;
+  items?: MarketplaceItem[];
+  onAddItem?: (item: MarketplaceItem) => void;
 }
 
 const CATEGORIES: MarketplaceCategory[] = [
@@ -27,7 +29,10 @@ const CATEGORIES: MarketplaceCategory[] = [
   'PDF Templates',
 ];
 
-export const MarketplacePage: React.FC<MarketplacePageProps> = ({ items, onAddItem }) => {
+export const MarketplacePage: React.FC<MarketplacePageProps> = ({
+  items = INITIAL_MARKETPLACE_ITEMS,
+  onAddItem,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeItem, setActiveItem] = useState<MarketplaceItem | null>(null);
@@ -40,7 +45,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ items, onAddIt
   const [priceInput, setPriceInput] = useState('15');
   const [catInput, setCatInput] = useState<MarketplaceCategory>('Business Templates');
 
-  const filteredItems = items.filter((item) => {
+  const safeItems = items || INITIAL_MARKETPLACE_ITEMS;
+  const filteredItems = safeItems.filter((item) => {
     const matchesCat = selectedCategory === 'All' || item.category === selectedCategory;
     const matchesQuery =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,7 +74,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ items, onAddIt
       isFeatured: true,
     };
 
-    onAddItem(newItem);
+    if (onAddItem) {
+      onAddItem(newItem);
+    }
     setShowUploadModal(false);
     setTitleInput('');
     setDescInput('');

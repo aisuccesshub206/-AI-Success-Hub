@@ -11,13 +11,22 @@ import {
   Loader2,
   Zap,
 } from 'lucide-react';
-import { ChatMessage } from '../../types';
+import { ChatMessage, UserProfile } from '../../types';
+import { aiService } from '../../services/aiService';
 
 interface AiChatStudioProps {
+  user?: UserProfile;
   onBack: () => void;
+  onIncrementAiUsage?: () => void;
+  onTriggerUsageLimit?: (reason: 'ai_daily' | 'ai_monthly') => void;
 }
 
-export const AiChatStudio: React.FC<AiChatStudioProps> = ({ onBack }) => {
+export const AiChatStudio: React.FC<AiChatStudioProps> = ({
+  user,
+  onBack,
+  onIncrementAiUsage,
+  onTriggerUsageLimit,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg-1',
@@ -46,6 +55,19 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ onBack }) => {
     const query = textToSend || input;
     if (!query.trim() || loading) return;
 
+    // Check client-side plan limit
+    if (user && user.usage && user.usage.aiRequestsToday >= user.usage.aiRequestsLimitDaily) {
+      if (onTriggerUsageLimit) onTriggerUsageLimit('ai_daily');
+      const limitMsg: ChatMessage = {
+        id: `limit-${Date.now()}`,
+        sender: 'ai',
+        text: `⚠️ You have reached your daily AI limit (${user.usage.aiRequestsToday}/${user.usage.aiRequestsLimitDaily}) for your ${user.plan} plan. Please upgrade to Pro or Enterprise for higher limits!`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, limitMsg]);
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -58,32 +80,44 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({ onBack }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, userMsg].map((m) => ({
-            role: m.sender === 'user' ? 'user' : 'model',
-            content: m.text,
-          })),
-        }),
+      const response = await aiService.sendChatMessage({
+        user,
+        messages: [...messages, userMsg].map((m) => ({
+          role: m.sender === 'user' ? 'user' : 'model',
+          content: m.text,
+        })),
+        systemInstruction: "You are the AI Success Hub Assistant. Be helpful, concise, professional, and clear.",
       });
 
-      const data = await response.json();
+      if (!response.success) {
+        if (response.reason === 'ai_daily' || response.reason === 'ai_monthly') {
+          if (onTriggerUsageLimit) onTriggerUsageLimit(response.reason);
+        }
+        const limitMsg: ChatMessage = {
+          id: `limit-${Date.now()}`,
+          sender: 'ai',
+          text: `⚠️ ${response.error || 'Request failed due to usage limit or server error.'}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, limitMsg]);
+        return;
+      }
+
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: data.result || "I couldn't process your request.",
+        text: response.data?.result || "I couldn't process your request.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
       setMessages((prev) => [...prev, aiMsg]);
+      if (onIncrementAiUsage) onIncrementAiUsage();
     } catch (err: any) {
       console.error('AI Chat Error:', err);
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'ai',
-        text: 'Sorry, I encountered an error communicating with the Gemini server.',
+        text: `Sorry, an error occurred: ${err.message || 'Failed to communicate with Gemini API.'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);

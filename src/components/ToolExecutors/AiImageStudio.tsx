@@ -11,12 +11,24 @@ import {
   Layers,
 } from 'lucide-react';
 
+import { UserProfile } from '../../types';
+import { aiService } from '../../services/aiService';
+
 interface AiImageStudioProps {
+  user?: UserProfile;
   onBack: () => void;
   onLogFileProcess: (fileName: string, originalSize: number, processedSize: number, toolUsed: string) => void;
+  onIncrementAiUsage?: () => void;
+  onTriggerUsageLimit?: (reason: 'ai_daily' | 'ai_monthly') => void;
 }
 
-export const AiImageStudio: React.FC<AiImageStudioProps> = ({ onBack, onLogFileProcess }) => {
+export const AiImageStudio: React.FC<AiImageStudioProps> = ({
+  user,
+  onBack,
+  onLogFileProcess,
+  onIncrementAiUsage,
+  onTriggerUsageLimit,
+}) => {
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('Photorealistic');
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -43,27 +55,44 @@ export const AiImageStudio: React.FC<AiImageStudioProps> = ({ onBack, onLogFileP
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    // Check client-side plan limit
+    if (user && user.usage && user.usage.aiRequestsToday >= user.usage.aiRequestsLimitDaily) {
+      if (onTriggerUsageLimit) onTriggerUsageLimit('ai_daily');
+      alert(`⚠️ You have reached your daily AI image limit (${user.usage.aiRequestsToday}/${user.usage.aiRequestsLimitDaily}) for your ${user.plan} plan. Please upgrade to Pro or Enterprise for higher limits!`);
+      return;
+    }
+
     setGenerating(true);
     setGeneratedImageUrl(null);
 
     try {
-      const response = await fetch('/api/ai/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, aspectRatio, style }),
+      const response = await aiService.generateImage({
+        user,
+        prompt,
+        aspectRatio,
+        style,
       });
 
-      const data = await response.json();
-      if (data.imageUrl) {
-        setGeneratedImageUrl(data.imageUrl);
-        setCaption(data.caption || '');
+      if (!response.success) {
+        if (response.reason === 'ai_daily' || response.reason === 'ai_monthly') {
+          if (onTriggerUsageLimit) onTriggerUsageLimit(response.reason);
+        }
+        alert(`⚠️ ${response.error || 'Failed to generate image.'}`);
+        return;
+      }
+
+      if (response.data?.imageUrl) {
+        setGeneratedImageUrl(response.data.imageUrl);
+        setCaption(response.data.caption || '');
         onLogFileProcess(`generated_art_${Date.now()}.png`, prompt.length, 1024 * 500, 'AI Image Generator');
+        if (onIncrementAiUsage) onIncrementAiUsage();
       } else {
-        alert(data.error || 'Failed to generate image');
+        alert('Failed to generate image.');
       }
     } catch (err: any) {
       console.error('Image Gen Error:', err);
-      alert('Failed to connect to image generation endpoint.');
+      alert(`Failed to generate image: ${err.message || 'Server error'}`);
     } finally {
       setGenerating(false);
     }

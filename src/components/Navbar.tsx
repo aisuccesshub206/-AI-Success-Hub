@@ -470,27 +470,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>User Dashboard</span>
                     </button>
 
-                    <button
-                      onClick={() => {
-                        onOpenAdmin();
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-purple-300 hover:bg-purple-950/50 rounded-lg text-left transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-purple-400" />
-                        <span>Admin Console</span>
-                      </div>
-                      {user.role !== 'admin' ? (
-                        <span className="text-[9px] font-bold bg-purple-900/80 border border-purple-700/60 text-purple-200 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                          🔒 Lock
-                        </span>
-                      ) : (
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          onOpenAdmin();
+                          setUserDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-purple-300 hover:bg-purple-950/50 rounded-lg text-left transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-purple-400" />
+                          <span>Admin Console</span>
+                        </div>
                         <span className="text-[9px] font-bold bg-emerald-950 border border-emerald-700/60 text-emerald-300 px-1.5 py-0.5 rounded-full">
                           Admin
                         </span>
-                      )}
-                    </button>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {

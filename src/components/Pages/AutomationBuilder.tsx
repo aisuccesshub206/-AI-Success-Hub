@@ -26,10 +26,12 @@ import {
   Search,
 } from 'lucide-react';
 
+import { INITIAL_WORKFLOWS } from '../../data/v2Data';
+
 interface AutomationBuilderProps {
-  workflows: Workflow[];
-  onSaveWorkflow: (workflow: Workflow) => void;
-  onRunWorkflow: (workflowId: string) => void;
+  workflows?: Workflow[];
+  onSaveWorkflow?: (workflow: Workflow) => void;
+  onRunWorkflow?: (workflowId: string) => void;
 }
 
 const AGENT_CATALOG: { type: AgentType; name: string; desc: string; icon: string }[] = [
@@ -42,11 +44,12 @@ const AGENT_CATALOG: { type: AgentType; name: string; desc: string; icon: string
 ];
 
 export const AutomationBuilder: React.FC<AutomationBuilderProps> = ({
-  workflows,
+  workflows = INITIAL_WORKFLOWS,
   onSaveWorkflow,
   onRunWorkflow,
 }) => {
-  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow>(workflows[0] || {
+  const safeWorkflows = workflows && workflows.length > 0 ? workflows : INITIAL_WORKFLOWS;
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow>(safeWorkflows[0] || {
     id: `wf-${Date.now()}`,
     name: 'New Custom AI Workflow',
     description: 'Automates document ingestion, AI agent analysis, and report generation.',
@@ -109,27 +112,31 @@ export const AutomationBuilder: React.FC<AutomationBuilderProps> = ({
           `[SUCCESS] Step ${index + 1} completed with 100% confidence.`,
         ]);
 
-        if (index === selectedWorkflow.steps.length - 1) {
-          setTimeout(() => {
-            setRunningStepId(null);
-            setIsExecuting(false);
-            setLogs((prev) => [...prev, '🎉 [WORKFLOW COMPLETE] All AI agent tasks executed successfully!']);
-            onRunWorkflow(selectedWorkflow.id);
-          }, 800);
-        }
-      }, delay);
-      delay += 1000;
-    });
-  };
+            if (index === selectedWorkflow.steps.length - 1) {
+              setTimeout(() => {
+                setRunningStepId(null);
+                setIsExecuting(false);
+                setLogs((prev) => [...prev, '🎉 [WORKFLOW COMPLETE] All AI agent tasks executed successfully!']);
+                if (onRunWorkflow) {
+                  onRunWorkflow(selectedWorkflow.id);
+                }
+              }, 800);
+            }
+          }, delay);
+          delay += 1000;
+        });
+      };
 
-  const handleSave = () => {
-    onSaveWorkflow({
-      ...selectedWorkflow,
-      status: 'active',
-      lastRun: 'Just now',
-    });
-    alert('Workflow saved successfully!');
-  };
+      const handleSave = () => {
+        if (onSaveWorkflow) {
+          onSaveWorkflow({
+            ...selectedWorkflow,
+            status: 'active',
+            lastRun: 'Just now',
+          });
+        }
+        alert('Workflow saved successfully!');
+      };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -195,11 +202,11 @@ export const AutomationBuilder: React.FC<AutomationBuilderProps> = ({
           <div className="p-5 bg-[#07070e]/80 backdrop-blur-xl border border-white/10 rounded-2xl space-y-4">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <Layers className="w-4 h-4 text-indigo-400" />
-              <span>Saved AI Workflows ({workflows.length})</span>
+              <span>Saved AI Workflows ({safeWorkflows.length})</span>
             </h3>
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {workflows.map((wf) => (
+              {safeWorkflows.map((wf) => (
                 <button
                   key={wf.id}
                   onClick={() => setSelectedWorkflow(wf)}

@@ -30,6 +30,7 @@ interface EvcAdminConsoleProps {
   payments: EvcPaymentRequest[];
   config: EvcPaymentConfig;
   auditLogs: PaymentAuditLog[];
+  initialTab?: 'pending' | 'history' | 'settings' | 'reports' | 'logs';
   onApprovePayment: (paymentId: string, durationMonths: number, adminNotes?: string) => void;
   onRejectPayment: (paymentId: string, rejectionReason: string) => void;
   onUpdateConfig: (newConfig: EvcPaymentConfig) => void;
@@ -39,11 +40,12 @@ export const EvcAdminConsole: React.FC<EvcAdminConsoleProps> = ({
   payments,
   config,
   auditLogs,
+  initialTab = 'pending',
   onApprovePayment,
   onRejectPayment,
   onUpdateConfig,
 }) => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'settings' | 'reports' | 'logs'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'settings' | 'reports' | 'logs'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMethod, setFilterMethod] = useState<string>('all');
 
