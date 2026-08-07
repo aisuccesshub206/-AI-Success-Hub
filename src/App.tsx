@@ -17,6 +17,11 @@ import { AiChatStudio } from './components/ToolExecutors/AiChatStudio';
 import { AiImageStudio } from './components/ToolExecutors/AiImageStudio';
 import { ImageToolStudio } from './components/ToolExecutors/ImageToolStudio';
 import { ConverterStudio } from './components/ToolExecutors/ConverterStudio';
+import { AiResumeStudio } from './components/ToolExecutors/AiResumeStudio';
+import { AiVideoGeneratorStudio } from './components/ToolExecutors/AiVideoGeneratorStudio';
+import { ImageWatermarkRemoverStudio } from './components/ToolExecutors/ImageWatermarkRemoverStudio';
+import { VideoWatermarkRemoverStudio } from './components/ToolExecutors/VideoWatermarkRemoverStudio';
+
 
 // Dashboards
 import { UserDashboard } from './components/Dashboard/UserDashboard';
@@ -596,7 +601,59 @@ export default function App() {
       );
     }
 
-    if (activeToolId === 'ai-image-generator') {
+    if (activeToolId === 'ai-resume-builder') {
+      return (
+        <AiResumeStudio
+          user={user}
+          onBack={() => {
+            setActiveToolId(null);
+            setCurrentPage('home');
+          }}
+          onLogFileProcess={handleLogFileProcess}
+          onIncrementAiUsage={handleIncrementAiUsage}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
+        />
+      );
+    }
+
+    if (activeToolId === 'ai-video-generator') {
+      return (
+        <AiVideoGeneratorStudio
+          user={user}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
+          onSaveFileToDashboard={(file) => {
+            handleLogFileProcess(file.name, file.sizeMB * 1024 * 1024, file.sizeMB * 1024 * 1024, file.tool);
+          }}
+        />
+      );
+    }
+
+    if (activeToolId === 'ai-image-watermark-remover') {
+      return (
+        <ImageWatermarkRemoverStudio
+          user={user}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
+          onSaveFileToDashboard={(file) => {
+            handleLogFileProcess(file.name, file.sizeMB * 1024 * 1024, file.sizeMB * 1024 * 1024, file.tool);
+          }}
+        />
+      );
+    }
+
+    if (activeToolId === 'ai-video-watermark-remover') {
+      return (
+        <VideoWatermarkRemoverStudio
+          user={user}
+          onTriggerUsageLimit={(reason) => handleTriggerUsageLimitModal(reason)}
+          onSaveFileToDashboard={(file) => {
+            handleLogFileProcess(file.name, file.sizeMB * 1024 * 1024, file.sizeMB * 1024 * 1024, file.tool);
+          }}
+        />
+      );
+    }
+
+    if (activeToolId === 'ai-image-generator' || activeToolId === 'ai-thumbnail-generator') {
+
       return (
         <AiImageStudio
           user={user}

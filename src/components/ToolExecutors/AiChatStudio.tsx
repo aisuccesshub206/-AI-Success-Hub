@@ -55,13 +55,15 @@ export const AiChatStudio: React.FC<AiChatStudioProps> = ({
     const query = textToSend || input;
     if (!query.trim() || loading) return;
 
-    // Check client-side plan limit
-    if (user && user.usage && user.usage.aiRequestsToday >= user.usage.aiRequestsLimitDaily) {
-      if (onTriggerUsageLimit) onTriggerUsageLimit('ai_daily');
+    // Validate remaining monthly/daily request credits using aiService before calling model
+    const limitCheck = aiService.checkLimits(user);
+    if (!limitCheck.allowed) {
+      const reason = limitCheck.reason === 'ai_monthly' ? 'ai_monthly' : 'ai_daily';
+      if (onTriggerUsageLimit) onTriggerUsageLimit(reason);
       const limitMsg: ChatMessage = {
         id: `limit-${Date.now()}`,
         sender: 'ai',
-        text: `⚠️ You have reached your daily AI limit (${user.usage.aiRequestsToday}/${user.usage.aiRequestsLimitDaily}) for your ${user.plan} plan. Please upgrade to Pro or Enterprise for higher limits!`,
+        text: `⚠️ ${limitCheck.message || 'Request limit reached for your plan.'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, limitMsg]);

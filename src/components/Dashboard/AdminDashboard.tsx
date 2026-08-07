@@ -28,6 +28,8 @@ import { EvcAdminConsole } from './EvcAdminConsole';
 import { UserManagementConsole } from './UserManagementConsole';
 import { SubscriptionPlansConsole } from './SubscriptionPlansConsole';
 import { DatabaseConsole } from './DatabaseConsole';
+import { AiVideoProvidersConsole } from './AiVideoProvidersConsole';
+import { Video } from 'lucide-react';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -69,7 +71,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdatePlans,
 }) => {
   const [activeMainTab, setActiveMainTab] = useState<
-    'users' | 'payment_approval' | 'subscriptions' | 'analytics' | 'ai_usage' | 'settings' | 'api_keys' | 'evc_settings'
+    'users' | 'payment_approval' | 'subscriptions' | 'analytics' | 'ai_usage' | 'settings' | 'api_keys' | 'evc_settings' | 'ai_providers'
   >('users');
 
   const [stats, setStats] = useState<AdminStats>({
@@ -271,6 +273,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <Smartphone className="w-4 h-4 text-teal-400" />
           <span>EVC Payment Settings</span>
+        </button>
+
+        {/* 9. AI Video Providers */}
+        <button
+          onClick={() => setActiveMainTab('ai_providers')}
+          className={`px-4 py-2.5 rounded-2xl border font-bold text-xs transition-all flex items-center gap-2 ${
+            activeMainTab === 'ai_providers'
+              ? 'bg-indigo-950 border-indigo-500 text-indigo-300 shadow-xl ring-1 ring-indigo-500/40'
+              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+          }`}
+        >
+          <Video className="w-4 h-4 text-indigo-400" />
+          <span>AI Video Providers</span>
         </button>
 
       </div>
@@ -672,6 +687,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onRejectPayment={onRejectEvcPayment}
           onUpdateConfig={onUpdateEvcConfig}
         />
+      )}
+
+      {/* 9. AI VIDEO PROVIDERS TAB */}
+      {activeMainTab === 'ai_providers' && (
+        <AiVideoProvidersConsole />
       )}
 
     </div>

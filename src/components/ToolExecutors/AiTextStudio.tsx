@@ -76,10 +76,12 @@ export const AiTextStudio: React.FC<AiTextStudioProps> = ({
   const handleGenerate = async () => {
     if (!prompt && !contextText) return;
 
-    // Check client-side limit
-    if (user && user.usage && user.usage.aiRequestsToday >= user.usage.aiRequestsLimitDaily) {
-      if (onTriggerUsageLimit) onTriggerUsageLimit('ai_daily');
-      setResult(`⚠️ Daily AI generation limit reached (${user.usage.aiRequestsToday}/${user.usage.aiRequestsLimitDaily}) for your ${user.plan} plan. Please upgrade to Pro or Enterprise for higher limits.`);
+    // Validate remaining monthly/daily request credits using aiService before calling model
+    const limitCheck = aiService.checkLimits(user);
+    if (!limitCheck.allowed) {
+      const reason = limitCheck.reason === 'ai_monthly' ? 'ai_monthly' : 'ai_daily';
+      if (onTriggerUsageLimit) onTriggerUsageLimit(reason);
+      setResult(`⚠️ ${limitCheck.message || 'Request limit reached for your plan.'}`);
       return;
     }
 

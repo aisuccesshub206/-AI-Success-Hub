@@ -103,6 +103,7 @@ export interface ImageGenerationOptions {
   prompt: string;
   aspectRatio?: string;
   style?: string;
+  quality?: string;
 }
 
 export interface AiServiceResponse<T = any> {
@@ -255,6 +256,7 @@ export const aiService = {
           prompt: options.prompt,
           aspectRatio: options.aspectRatio,
           style: options.style,
+          quality: options.quality,
         }),
       });
 

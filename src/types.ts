@@ -14,6 +14,8 @@ export interface ToolItem {
   tags: string[];
 }
 
+export type Role = 'admin' | 'moderator' | 'user';
+
 export interface UserUsageLimits {
   aiRequestsToday: number;
   aiRequestsLimitDaily: number; // -1 for unlimited
@@ -29,22 +31,37 @@ export interface UserUsageLimits {
   autoDeleteDays?: number | null;
 }
 
+export interface UserActivityLog {
+  id: string;
+  action: string;
+  ipAddress?: string;
+  device?: string;
+  timestamp: string;
+  details?: string;
+}
+
 export interface UserProfile {
   id: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
   name: string;
   email: string;
   avatar: string;
   plan: 'Free' | 'Pro Monthly' | 'Pro Yearly' | 'Lifetime' | 'Enterprise' | string;
-  planStatus?: 'active' | 'canceling' | 'canceled' | 'past_due';
+  planStatus?: 'active' | 'canceling' | 'canceled' | 'past_due' | 'suspended';
   nextBillingDate?: string;
   storageUsedMB: number;
   storageLimitMB: number;
   filesProcessedCount: number;
   favorites: string[]; // tool IDs
-  role: 'user' | 'admin';
+  role: Role;
   accountStatus?: 'active' | 'suspended';
+  emailVerified?: boolean;
   joinedDate?: string;
+  lastLoginAt?: string;
   usage?: UserUsageLimits;
+  activityLogs?: UserActivityLog[];
 }
 
 export interface ProcessedFile {
@@ -356,5 +373,47 @@ export interface PaymentAuditLog {
   timestamp: string;
   ipAddress?: string;
 }
+
+// --- VEO 3 VIDEO GENERATOR & WATERMARK REMOVER TYPES ---
+export type LanguageCode = 'en' | 'so' | 'ar' | 'fr' | 'es';
+
+export interface Veo3VideoConfig {
+  prompt: string;
+  negativePrompt?: string;
+  scenePrompt?: string;
+  characterConsistency?: string;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  videoLengthSeconds: 8 | 16 | 30;
+  quality: 'HD' | '2K' | '4K';
+  style: 'Cinematic' | 'Hyper Realistic' | 'Pixar' | 'Anime' | 'ASMR' | 'Product Commercial' | 'Luxury' | 'Documentary';
+  cameraMovement: 'Drone' | 'Orbit' | 'Dolly' | 'Crane' | 'Handheld' | 'Static';
+  motionControl: number; // 1 to 10
+  cinematicLighting: string;
+  initialImage?: string; // image to video
+}
+
+export interface GeneratedVideoItem {
+  id: string;
+  title: string;
+  prompt: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  durationSeconds: number;
+  aspectRatio: string;
+  style: string;
+  createdAt: string;
+  isFavorite: boolean;
+}
+
+export interface WatermarkRemoveResult {
+  id: string;
+  originalUrl: string;
+  cleanUrl: string;
+  type: 'image' | 'video';
+  fileName: string;
+  fileSizeMB: number;
+  processedAt: string;
+}
+
 
 
